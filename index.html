@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X Academy - Excel Functions Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+                    colors: {
+                        'k-red': '#E21B3C',
+                        'k-blue': '#1368CE',
+                        'k-yellow': '#D89E00',
+                        'k-green': '#26890C',
+                        'k-purple': '#46178F',
+                        'k-bg': '#f2f2f2'
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'slide-in': 'slideIn 0.5s ease-out'
+                    },
+                    keyframes: {
+                        slideIn: { '0%': { transform: 'translateY(50px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f2f2f2; background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2346178F' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+        
+        /* Kahoot Shapes */
+        .shape-tri { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .shape-dia { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+        .shape-cir { border-radius: 50%; }
+        .shape-sqr { transform: rotate(0deg); }
+
+        .answer-card { transition: all 0.2s; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+        .answer-card:active { transform: translateY(4px); box-shadow: none; }
+        
+        .timer-bar { transition: width 1s linear; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); }
+        .gender-card { border: 3px solid transparent; transition: 0.3s; }
+        .gender-card.selected { border-color: #46178F; background-color: #e0d4fc; transform: scale(1.05); }
+        
+        /* Mini Excel Grid Logic */
+        .mini-grid td { border: 1px solid #e2e8f0; padding: 4px 8px; text-align: center; font-family: monospace; font-size: 0.8rem; background: white; }
+        .mini-grid th { background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 0.7rem; color: #64748b; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-hidden text-gray-800 select-none">
+
+    <div id="screen-lobby" class="flex-grow flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto min-h-screen">
+        <div class="mb-8 text-center animate-bounce-slow">
+            <h1 class="text-5xl font-black text-k-purple mb-2 drop-shadow-sm">X Academy</h1>
+            <h2 class="text-2xl font-bold text-gray-500">Excel Functions League</h2>
+        </div>
+
+        <div class="glass p-8 rounded-3xl w-full shadow-2xl border-b-8 border-gray-200">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="gender-card bg-gray-50 p-4 rounded-xl flex flex-col items-center cursor-pointer shadow-sm selected" id="g-male" onclick="setGender('male')">
+                    <span class="text-4xl mb-2">😎</span>
+                    <span class="font-bold text-sm">نشمي</span>
+                </div>
+                <div class="gender-card bg-gray-50 p-4 rounded-xl flex flex-col items-center cursor-pointer shadow-sm" id="g-female" onclick="setGender('female')">
+                    <span class="text-4xl mb-2">🤠</span>
+                    <span class="font-bold text-sm">نشمية</span>
+                </div>
+            </div>
+
+            <input type="text" id="username" class="w-full p-4 rounded-xl border-2 border-gray-300 text-center font-bold text-xl mb-4 focus:border-k-purple focus:outline-none transition bg-gray-50 placeholder-gray-400" placeholder="اكتب اسمك يا وحش.." autocomplete="off">
+            
+            <button onclick="startGame()" class="w-full bg-gray-900 text-white font-black py-4 rounded-xl text-xl shadow-[0_6px_0_rgb(0,0,0)] hover:shadow-[0_4px_0_rgb(0,0,0)] hover:translate-y-[2px] transition active:shadow-none active:translate-y-[6px]">
+                <span id="txt-start">فوت عالتحدي 🚀</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="screen-game" class="hidden flex-col h-screen w-full relative">
+        <div class="bg-white p-4 flex justify-between items-center shadow-md z-10">
+            <div class="flex items-center gap-3">
+                <div class="bg-black text-white px-3 py-1 rounded-full font-black text-sm" id="q-counter">1/20</div>
+                <div id="lvl-badge" class="px-3 py-1 rounded-full font-bold text-xs text-white bg-green-500 uppercase tracking-wide">سهل</div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-1 text-orange-500 font-bold animate-pulse">
+                    <i data-lucide="flame"></i> <span id="streak-counter">0</span>
+                </div>
+                <div class="bg-gray-100 px-4 py-1 rounded-full font-black text-lg border border-gray-200" id="score-display">0</div>
+            </div>
+        </div>
+
+        <div class="flex-grow flex flex-col items-center justify-center p-4 relative">
+            <div class="bg-white px-8 py-6 rounded-2xl shadow-lg text-center max-w-4xl w-full mb-6 border-b-4 border-gray-200">
+                <h2 id="q-text" class="text-2xl md:text-3xl font-black text-gray-800 leading-tight"></h2>
+            </div>
+
+            <div class="w-full max-w-2xl bg-blue-50 rounded-xl border-2 border-blue-100 h-40 md:h-56 flex items-center justify-center mb-6 relative overflow-hidden shadow-inner p-4">
+                <div id="q-visual" class="flex items-center justify-center w-full h-full"></div>
+                <div class="absolute bottom-0 left-0 h-2 bg-k-purple z-20" id="timer-bar" style="width: 100%;"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl h-64 md:h-48">
+                <div onclick="submitAnswer(0)" class="answer-card bg-k-red text-white rounded-xl flex items-center p-4 gap-4 hover:brightness-110">
+                    <div class="bg-black/20 w-10 h-10 flex items-center justify-center rounded-lg flex-shrink-0"><div class="shape-tri bg-white w-6 h-6"></div></div>
+                    <span id="opt-0" class="font-bold text-lg leading-tight"></span>
+                </div>
+                <div onclick="submitAnswer(1)" class="answer-card bg-k-blue text-white rounded-xl flex items-center p-4 gap-4 hover:brightness-110">
+                    <div class="bg-black/20 w-10 h-10 flex items-center justify-center rounded-lg flex-shrink-0"><div class="shape-dia bg-white w-6 h-6"></div></div>
+                    <span id="opt-1" class="font-bold text-lg leading-tight"></span>
+                </div>
+                <div onclick="submitAnswer(2)" class="answer-card bg-k-yellow text-white rounded-xl flex items-center p-4 gap-4 hover:brightness-110">
+                    <div class="bg-black/20 w-10 h-10 flex items-center justify-center rounded-lg flex-shrink-0"><div class="shape-cir bg-white w-6 h-6"></div></div>
+                    <span id="opt-2" class="font-bold text-lg leading-tight"></span>
+                </div>
+                <div onclick="submitAnswer(3)" class="answer-card bg-k-green text-white rounded-xl flex items-center p-4 gap-4 hover:brightness-110">
+                    <div class="bg-black/20 w-10 h-10 flex items-center justify-center rounded-lg flex-shrink-0"><div class="shape-sqr bg-white w-6 h-6"></div></div>
+                    <span id="opt-3" class="font-bold text-lg leading-tight"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-feedback" class="hidden absolute inset-0 bg-black/90 z-50 flex-col items-center justify-center text-white">
+        <div id="fb-icon" class="mb-4 transform scale-150"></div>
+        <h2 id="fb-title" class="text-5xl font-black mb-2 animate-bounce"></h2>
+        <p id="fb-subtitle" class="text-xl text-gray-300 mb-8 font-medium"></p>
+        
+        <div class="bg-white/10 p-6 rounded-2xl backdrop-blur-md border border-white/20 text-center min-w-[300px]">
+            <p class="text-sm uppercase tracking-widest text-gray-400 mb-1">النقاط المكتسبة</p>
+            <div id="fb-points" class="text-4xl font-black text-k-yellow mb-4">+0</div>
+            <p class="text-sm uppercase tracking-widest text-gray-400 mb-1">المجموع الكلي</p>
+            <div id="fb-total" class="text-2xl font-bold">0</div>
+        </div>
+
+        <button onclick="nextQuestion()" class="mt-10 bg-white text-black font-black py-3 px-12 rounded-full text-xl hover:scale-105 transition shadow-lg">السؤال التالي ➡️</button>
+    </div>
+
+    <div id="screen-podium" class="hidden min-h-screen flex-col items-center justify-center p-6 bg-k-purple text-white text-center relative overflow-hidden">
+        <div class="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-k-purple to-black"></div>
+        
+        <div class="relative z-10 max-w-2xl w-full">
+            <h1 class="text-6xl font-black mb-2 text-k-yellow drop-shadow-md">النتيجة النهائية</h1>
+            <div class="bg-white text-gray-900 p-8 rounded-3xl shadow-2xl mt-8" id="certificate-box">
+                <div class="w-24 h-24 bg-k-purple text-white rounded-full flex items-center justify-center text-4xl font-black mx-auto -mt-20 border-4 border-white shadow-lg mb-4">#1</div>
+                
+                <h2 class="text-3xl font-bold mb-1" id="podium-name">User</h2>
+                <div class="text-6xl font-black text-k-purple mb-2" id="final-score">0</div>
+                
+                <div class="grid grid-cols-3 gap-2 mt-6 mb-6 text-sm">
+                    <div class="bg-gray-100 p-2 rounded">✅ <span id="res-correct">0</span> صح</div>
+                    <div class="bg-gray-100 p-2 rounded">❌ <span id="res-wrong">0</span> خطأ</div>
+                    <div class="bg-gray-100 p-2 rounded">🔥 <span id="res-streak">0</span> ماكس</div>
+                </div>
+
+                <div id="certificate-content" class="hidden p-10 text-center border-8 border-k-purple bg-white text-black">
+                    <h1 class="text-4xl font-black text-k-purple mb-4">X Academy</h1>
+                    <h2 class="text-2xl text-gray-600 mb-8" dir="ltr">Excel Functions Master</h2>
+                    <h1 class="text-5xl font-black text-black mb-4 border-b-4 border-k-yellow inline-block px-8 pb-2" id="cert-print-name"></h1>
+                    <p class="text-xl text-gray-500 mt-4">Has successfully passed the challenge.</p>
+                    <div class="mt-8 text-sm text-gray-400 font-mono" id="cert-print-date"></div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button onclick="downloadCertificate()" class="bg-k-green hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i data-lucide="download"></i> <span>تحميل الشهادة</span>
+                    </button>
+                    <button onclick="location.reload()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-xl transition">
+                        <span>العب مرة ثانية</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const app = {
+            gender: 'male',
+            username: '',
+            score: 0,
+            streak: 0,
+            maxStreak: 0,
+            currentQ: 0,
+            timer: null,
+            timeLeft: 0,
+            maxTime: 20,
+            correctCount: 0
+        };
+
+        const questions = [
+            // --- Easy ---
+            { l: 'easy', t: "دالة COUNT شو بتحسب؟", ans: ["الخلايا الفارغة", "الخلايا النصية", "الخلايا الرقمية", "مجموع الأرقام"], c: 2, v: '<div class="text-4xl">COUNT(1, "A")</div>' },
+            { l: 'easy', t: "اذا عندي خلايا فيها نص وارقام، دالة COUNTA شو نتيجتها؟", ans: ["تعد الارقام بس", "تعد النصوص بس", "تعد كل خلية مش فاضية", "ما بتعد ولا شي"], c: 2, v: '<div class="text-4xl">COUNTA(...)</div>' },
+            { l: 'easy', t: "دالة COUNTBLANK شو وظيفتها؟", ans: ["تعد الاصفار", "تعد الخلايا الفارغة", "تعد النصوص", "تعد الارقام"], c: 1, v: '<table class="mini-grid"><tr><td>1</td><td></td><td>A</td></tr></table>' },
+            { l: 'easy', t: "دالة AVERAGE شو بتعمل؟", ans: ["بتجمع القيم", "اكبر قيمة", "المتوسط الحسابي", "عدد القيم"], c: 2, v: '<div class="text-4xl">Mean (µ)</div>' },
+            { l: 'easy', t: "اذا كان عندي القيم 10 و 20 و 30، شو ناتج AVERAGE؟", ans: ["20", "60", "15", "30"], c: 0, v: '<div class="text-4xl">(10+20+30)/3</div>' },
+            { l: 'easy', t: "اذا خلية فاضية مع AVERAGE، شو بصير فيها؟", ans: ["بتنحسب صفر", "بتطلع خطا", "بتتجاهلها الدالة", "توقف الدالة"], c: 2, v: '<table class="mini-grid"><tr><td>10</td><td></td><td>20</td></tr></table>' },
+            
+            // --- Medium ---
+            { l: 'med', t: "دالة COUNT بتتجاهل اي نوع بيانات؟", ans: ["الارقام", "النصوص", "التواريخ", "لا شيء"], c: 1, v: '<div class="text-2xl font-mono">COUNT("Text") = 0</div>' },
+            { l: 'med', t: "اذا استخدمت COUNTA على خلايا فيها مسافات بس؟", ans: ["بتعتبرها فاضية", "بتعدها", "بتعطي خطا", "ما بتعد اشي"], c: 1, v: '<div class="text-4xl">" "</div>' },
+            { l: 'med', t: "شو الفرق الاساسي بين COUNT و COUNTA؟", ans: ["COUNT اسرع", "COUNT بتعد الكل", "COUNTA بتعد غير الفارغ", "ما في فرق"], c: 2, v: '<div class="text-xl font-mono">COUNT vs COUNTA</div>' },
+            { l: 'med', t: "دالة RANK شو وظيفتها؟", ans: ["ترتيب القيم", "جمع القيم", "حساب المتوسط", "عد القيم"], c: 0, v: '<i data-lucide="list-ordered" class="w-16 h-16"></i>' },
+            { l: 'med', t: "اذا استخدمت RANK بدون تحديد ترتيب، شو الافتراضي؟", ans: ["تصاعدي", "تنازلي", "عشوائي", "بدون ترتيب"], c: 1, v: '<div class="text-4xl">Descending</div>' },
+            { l: 'med', t: "اذا عندك قيم متساوية بدالة RANK شو بصير؟", ans: ["ترتيب مختلف", "واحدة بس تنحسب", "نفس الترتيب يتكرر", "خطأ"], c: 2, v: '<div class="text-2xl">1st, 2nd, 2nd, 4th</div>' },
+            { l: 'med', t: "دالة AVERAGE بتتعامل مع النص كيف؟", ans: ["بتحسبه صفر", "بتتجاهله", "بتوقف الدالة", "بتحوله لرقم"], c: 1, v: '<div class="text-4xl">Ignored 🙈</div>' },
+
+            // --- Hard ---
+            { l: 'hard', t: "دالة AVERAGEIFS شو ميزتها الاساسية؟", ans: ["اسرع من AVERAGE", "متوسط بشرط واحد او اكثر", "متوسط للنصوص", "بتعد القيم"], c: 1, v: '<div class="text-2xl font-mono">Range, Crit1, Crit2...</div>' },
+            { l: 'hard', t: "AVERAGEIFS بتحتاج ايش كحد ادنى؟", ans: ["معيار واحد", "معيارين", "مدى المتوسط ومدى الشرط", "خلايا فاضية"], c: 2, v: '<div class="text-xl">Avg_Rng, Crit_Rng1, Crit1</div>' },
+            { l: 'hard', t: "اذا الشرط في AVERAGEIFS ما تحقق ولا مرة؟", ans: ["النتيجة صفر", "فراغ", "خطأ #DIV/0!", "المتوسط الكلي"], c: 2, v: '<div class="text-4xl text-red-600">#DIV/0!</div>' },
+            { l: 'hard', t: "دالة COUNT بتحسب التاريخ ليش؟", ans: ["لانه نص", "لانه قيمة منطقية", "لانه رقم مخفي", "ما بتحسبه"], c: 2, v: '<div class="text-2xl">Date = Serial Number</div>' },
+            { l: 'hard', t: "لو استخدمت COUNT على خلايا فيها TRUE و FALSE؟", ans: ["بتحسبهم", "بتتجاهلهم", "بتحسب TRUE بس", "تطلع خطا"], c: 1, v: '<div class="text-2xl font-mono">Range: [TRUE, FALSE]</div>' },
+            { l: 'hard', t: "اذا عندك صفر بدالة COUNT، هل ينحسب؟", ans: ["لا", "حسب التنسيق", "نعم", "يعتمد عالنسخة"], c: 2, v: '<div class="text-4xl font-mono">0 is a Number</div>' },
+            { l: 'hard', t: "متى الافضل نستخدم COUNTA بدل COUNT؟", ans: ["البيانات كلها ارقام", "خليط نصوص وارقام", "خلايا فاضية بس", "للترتيب"], c: 1, v: '<i data-lucide="type" class="w-16 h-16"></i>' }
+        ];
+
+        const praises = {
+            male: ['وحش!', 'يسعد دينك!', 'قطاعة!', 'فنان!', 'كبير يا باسل!'],
+            female: ['نشمية!', 'مبدعة!', 'يسعد دينك!', 'فنانة!', 'كبيرة يا كبيرة!']
+        };
+
+        const fails = {
+            male: ['يا رجل وحد الله..', 'راحت عليك..', 'ركز يا كبير!', 'بسيطة معوضة'],
+            female: ['يا اختي صلي عالنبي..', 'راحت عليكي..', 'ركزي يا نشمية!', 'بسيطة معوضة']
+        };
+
+        // --- LOGIC ---
+        function setGender(type) {
+            app.gender = type;
+            document.querySelectorAll('.gender-card').forEach(el => el.classList.remove('selected', 'bg-purple-100', 'border-k-purple'));
+            const selected = document.getElementById(`g-${type}`);
+            selected.classList.add('selected');
+        }
+
+        function startGame() {
+            const nameInput = document.getElementById('username').value.trim();
+            if(!nameInput) {
+                document.getElementById('username').classList.add('animate-pulse', 'border-k-red');
+                setTimeout(() => document.getElementById('username').classList.remove('animate-pulse', 'border-k-red'), 500);
+                return;
+            }
+            app.username = nameInput;
+            document.getElementById('screen-lobby').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('screen-game').classList.add('flex');
+            
+            app.currentQ = 0;
+            app.score = 0;
+            loadQuestion();
+            lucide.createIcons();
+        }
+
+        function loadQuestion() {
+            const current = questions[app.currentQ];
+            
+            // Difficulty Badge Logic
+            const badge = document.getElementById('lvl-badge');
+            if(current.l === 'easy') { badge.textContent = "سهل"; badge.className = "px-3 py-1 rounded-full font-bold text-xs text-white bg-green-500 uppercase tracking-wide"; }
+            else if(current.l === 'med') { badge.textContent = "متوسط"; badge.className = "px-3 py-1 rounded-full font-bold text-xs text-white bg-yellow-500 uppercase tracking-wide"; }
+            else { badge.textContent = "صعب"; badge.className = "px-3 py-1 rounded-full font-bold text-xs text-white bg-red-600 uppercase tracking-wide"; }
+
+            document.getElementById('q-counter').textContent = `${app.currentQ + 1} / ${questions.length}`;
+            document.getElementById('score-display').textContent = app.score;
+            document.getElementById('streak-counter').textContent = app.streak;
+            document.getElementById('q-text').textContent = current.t;
+            document.getElementById('q-visual').innerHTML = current.v;
+
+            for(let i=0; i<4; i++) {
+                document.getElementById(`opt-${i}`).textContent = current.ans[i];
+            }
+
+            // Timer
+            app.timeLeft = app.maxTime;
+            document.getElementById('timer-bar').style.width = '100%';
+            document.getElementById('timer-bar').style.backgroundColor = '#46178F';
+            
+            if(app.timer) clearInterval(app.timer);
+            app.timer = setInterval(() => {
+                app.timeLeft -= 0.1;
+                const pct = (app.timeLeft / app.maxTime) * 100;
+                const bar = document.getElementById('timer-bar');
+                bar.style.width = `${pct}%`;
+                if(pct < 30) bar.style.backgroundColor = '#E21B3C';
+                if(app.timeLeft <= 0) submitAnswer(-1);
+            }, 100);
+            
+            lucide.createIcons();
+        }
+
+        function submitAnswer(idx) {
+            clearInterval(app.timer);
+            const current = questions[app.currentQ];
+            const isCorrect = idx === current.c;
+            const pList = app.gender === 'male' ? praises.male : praises.female;
+            const fList = app.gender === 'male' ? fails.male : fails.female;
+
+            let points = 0;
+            let title = "";
+            let sub = "";
+            let icon = "";
+
+            if(isCorrect) {
+                // Scoring
+                const speedFactor = Math.max(0, app.timeLeft / app.maxTime);
+                points = Math.floor(600 + (400 * speedFactor) + (app.streak * 50));
+                app.score += points;
+                app.streak++;
+                app.correctCount++;
+                if(app.streak > app.maxStreak) app.maxStreak = app.streak;
+
+                title = pList[Math.floor(Math.random() * pList.length)];
+                sub = `جوابك صح ١٠٠٪`;
+                icon = `<i data-lucide="check-circle" class="w-24 h-24 text-k-green"></i>`;
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+            } else {
+                app.streak = 0;
+                title = fList[Math.floor(Math.random() * fList.length)];
+                sub = `الجواب الصح كان: ${current.ans[current.c]}`;
+                icon = `<i data-lucide="x-circle" class="w-24 h-24 text-k-red"></i>`;
+            }
+
+            document.getElementById('fb-icon').innerHTML = icon;
+            document.getElementById('fb-title').textContent = title;
+            document.getElementById('fb-subtitle').textContent = sub;
+            document.getElementById('fb-points').textContent = isCorrect ? `+${points}` : `0`;
+            document.getElementById('fb-total').textContent = app.score;
+
+            document.getElementById('screen-feedback').classList.remove('hidden');
+            document.getElementById('screen-feedback').classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function nextQuestion() {
+            document.getElementById('screen-feedback').classList.add('hidden');
+            document.getElementById('screen-feedback').classList.remove('flex');
+            
+            app.currentQ++;
+            if(app.currentQ < questions.length) {
+                loadQuestion();
+            } else {
+                showPodium();
+            }
+        }
+
+        function showPodium() {
+            document.getElementById('screen-game').classList.remove('flex');
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-podium').classList.remove('hidden');
+            document.getElementById('screen-podium').classList.add('flex');
+
+            document.getElementById('podium-name').textContent = app.username;
+            document.getElementById('final-score').textContent = app.score;
+            document.getElementById('res-correct').textContent = app.correctCount;
+            document.getElementById('res-wrong').textContent = questions.length - app.correctCount;
+            document.getElementById('res-streak').textContent = app.maxStreak;
+            
+            const d = new Date();
+            document.getElementById('cert-print-date').textContent = d.toLocaleDateString();
+            
+            // Celebration loop
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#E21B3C', '#1368CE', '#D89E00'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#E21B3C', '#1368CE', '#D89E00'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        function downloadCertificate() {
+            const certBox = document.getElementById('certificate-content');
+            document.getElementById('cert-print-name').textContent = app.username;
+            certBox.classList.remove('hidden');
+            html2canvas(certBox, { scale: 3 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `X_Champion_${app.username}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                certBox.classList.add('hidden');
+            });
+        }
+    </script>
+</body>
+</html>
